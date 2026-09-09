@@ -1,4 +1,5 @@
 export type ExtensionStatus =
+  | 'downloading'
   | 'readyToInstall'
   | 'installed'
   | 'updateReady'

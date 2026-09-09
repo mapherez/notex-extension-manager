@@ -27,22 +27,34 @@ async fn sync_extensions(state: State<'_, AppState>) -> Result<ManagerSnapshot, 
 }
 
 #[tauri::command]
-async fn install_extension(id: String, state: State<'_, AppState>) -> Result<ExtensionActionResult, String> {
+async fn install_extension(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<ExtensionActionResult, String> {
     state.manager.lock().await.install(&id).await
 }
 
 #[tauri::command]
-async fn update_extension(id: String, state: State<'_, AppState>) -> Result<ExtensionActionResult, String> {
+async fn update_extension(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<ExtensionActionResult, String> {
     state.manager.lock().await.update(&id).await
 }
 
 #[tauri::command]
-async fn remove_extension(id: String, state: State<'_, AppState>) -> Result<ExtensionActionResult, String> {
+async fn remove_extension(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<ExtensionActionResult, String> {
     state.manager.lock().await.remove(&id).await
 }
 
 #[tauri::command]
-async fn repair_extension(id: String, state: State<'_, AppState>) -> Result<ExtensionActionResult, String> {
+async fn repair_extension(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<ExtensionActionResult, String> {
     state.manager.lock().await.repair(&id).await
 }
 
@@ -61,7 +73,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(AppState { manager: Mutex::new(manager) })
+        .manage(AppState {
+            manager: Mutex::new(manager),
+        })
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             sync_extensions,

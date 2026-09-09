@@ -1,0 +1,126 @@
+name: Release Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Leave empty to use v<tauri.conf.json version>
+        required: false
+        default: ""
+      release_notes:
+        description: Release notes
+        required: false
+        default: ""
+      draft:
+        description: Create a draft release
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: Mark as prerelease
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nox-tauri-release
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build and publish Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm test
+          cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify updater signing configuration
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            throw "Missing TAURI_SIGNING_PRIVATE_KEY repository secret."
+          }
+          $config = Get-Content -LiteralPath "src-tauri/tauri.conf.json" -Raw
+          if ($config.Contains("REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY")) {
+            throw "Replace the updater public-key placeholder in src-tauri/tauri.conf.json before releasing."
+          }
+
+      - name: Build signed updater artifacts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri:build
+
+      - name: Resolve release metadata
+        id: metadata
+        shell: pwsh
+        env:
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+        run: |
+          $config = Get-Content -LiteralPath "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+          $tag = ([string]$env:REQUESTED_TAG).Trim()
+          if (-not $tag) { $tag = "v$($config.version)" }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$($config.version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create updater metadata
+        env:
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TAURI_RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: npm run release:metadata
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RELEASE_DRAFT: ${{ inputs.draft }}
+          RELEASE_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -ne 0) {
+            $arguments = @("release", "create", $env:RELEASE_TAG, "--title", "NoX Extension Manager $env:RELEASE_VERSION", "--notes", $env:RELEASE_NOTES, "--target", $env:GITHUB_SHA)
+            if ($env:RELEASE_DRAFT -eq "true") { $arguments += "--draft" }
+            if ($env:RELEASE_PRERELEASE -eq "true") { $arguments += "--prerelease" }
+            & gh @arguments
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the GitHub release." }
+          }
+          $bundle = Resolve-Path "src-tauri/target/release/bundle"
+          $assets = @(Get-ChildItem -LiteralPath $bundle -Recurse -File | Where-Object { $_.Extension -in ".exe", ".msi", ".zip", ".sig" } | ForEach-Object FullName)
+          $assets += (Join-Path $bundle "latest.json")
+          gh release upload $env:RELEASE_TAG @assets --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the release assets." }

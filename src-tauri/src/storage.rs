@@ -50,9 +50,14 @@ impl StoragePaths {
             &self.backups,
             &self.logs,
         ] {
-            fs::create_dir_all(directory).map_err(|error| {
-                format!("Could not create {}: {error}", directory.display())
-            })?;
+            fs::create_dir_all(directory)
+                .map_err(|error| format!("Could not create {}: {error}", directory.display()))?;
+        }
+        if !self.repository_state.exists() {
+            self.save_repository_state(&RepositoryState::default())?;
+        }
+        if !self.chrome_state.exists() {
+            self.save_chrome_state(&ChromeState::default())?;
         }
         Ok(())
     }
@@ -63,6 +68,10 @@ impl StoragePaths {
 
     pub fn pending_dir(&self, id: &str, version: &str) -> PathBuf {
         self.updates.join(id).join(version)
+    }
+
+    pub fn backup_dir(&self, id: &str) -> PathBuf {
+        self.backups.join(id)
     }
 
     pub fn load_repository_state(&self) -> Result<RepositoryState, String> {
@@ -93,8 +102,8 @@ fn load_json_or_default<T: DeserializeOwned + Default>(path: &Path) -> Result<T,
     if !path.exists() {
         return Ok(T::default());
     }
-    let bytes = fs::read(path)
-        .map_err(|error| format!("Could not read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("Could not read {}: {error}", path.display()))?;
     serde_json::from_slice(&bytes)
         .map_err(|error| format!("Could not parse {}: {error}", path.display()))
 }
@@ -144,8 +153,13 @@ mod tests {
         let paths = StoragePaths::from_root(temp.path().join("extensions"));
         paths.ensure().unwrap();
 
-        let mut state = RepositoryState::default();
-        state.commit_sha = Some("abc123".into());
+        assert!(paths.chrome_state.exists());
+        assert!(paths.repository_state.exists());
+
+        let state = RepositoryState {
+            commit_sha: Some("abc123".into()),
+            ..RepositoryState::default()
+        };
         paths.save_repository_state(&state).unwrap();
 
         assert_eq!(

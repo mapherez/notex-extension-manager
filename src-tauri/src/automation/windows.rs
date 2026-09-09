@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use uiautomation::patterns::{UIInvokePattern, UITogglePattern, UIValuePattern};
 use uiautomation::types::{ControlType, ToggleState};
@@ -41,9 +41,7 @@ impl WindowsChromeAutomation {
             PathBuf::from(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
         ];
         if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-            candidates.push(
-                PathBuf::from(local).join(r"Google\Chrome\Application\chrome.exe"),
-            );
+            candidates.push(PathBuf::from(local).join(r"Google\Chrome\Application\chrome.exe"));
         }
         candidates
             .into_iter()
@@ -54,25 +52,41 @@ impl WindowsChromeAutomation {
     fn open_extensions_page(&self) -> Result<(UIAutomation, UIElement), String> {
         let chrome = Self::chrome_path()?;
         Command::new(chrome)
-            .args(["--force-renderer-accessibility", "chrome://extensions"])
+            .args([
+                "--force-renderer-accessibility",
+                "--profile-directory=Default",
+                "chrome://extensions",
+            ])
             .spawn()
             .map_err(|error| format!("Could not open Google Chrome: {error}"))?;
 
         let automation = UIAutomation::new()
             .map_err(|error| format!("Could not initialize Windows UI Automation: {error}"))?;
-        let window = automation
-            .create_matcher()
-            .control_type(ControlType::Window)
-            .filter_fn(Box::new(|element: &UIElement| {
-                Ok(element.get_classname()?.starts_with("Chrome_WidgetWin"))
-            }))
-            .depth(3)
-            .timeout(12_000)
-            .find_first()
-            .map_err(|_| {
-                "Chrome opened, but its accessible window could not be found. Ensure the desktop is unlocked."
-                    .to_string()
-            })?;
+        let deadline = Instant::now() + Duration::from_secs(12);
+        let window = loop {
+            let windows = automation
+                .create_matcher()
+                .control_type(ControlType::Window)
+                .filter_fn(Box::new(|element: &UIElement| {
+                    Ok(element.get_classname()?.starts_with("Chrome_WidgetWin"))
+                }))
+                .depth(3)
+                .timeout(0)
+                .find_all()
+                .unwrap_or_default();
+            if let Some(window) = windows.into_iter().find(|window| {
+                find_named(&automation, window, DEVELOPER_MODE_NAMES, None, 25, 0).is_ok()
+            }) {
+                break window;
+            }
+            if Instant::now() >= deadline {
+                return Err(
+                    "Chrome opened, but chrome://extensions was not exposed through accessibility. Ensure the desktop is unlocked."
+                        .to_string(),
+                );
+            }
+            thread::sleep(Duration::from_millis(200));
+        };
         window
             .set_focus()
             .map_err(|error| format!("Chrome could not receive focus: {error}"))?;
@@ -80,10 +94,7 @@ impl WindowsChromeAutomation {
         Ok((automation, window))
     }
 
-    fn ensure_developer_mode(
-        automation: &UIAutomation,
-        window: &UIElement,
-    ) -> Result<(), String> {
+    fn ensure_developer_mode(automation: &UIAutomation, window: &UIElement) -> Result<(), String> {
         let toggle = find_named(automation, window, DEVELOPER_MODE_NAMES, None, 25, 8_000)
             .map_err(|_| {
                 "Developer Mode was not exposed by Chrome in English or pt-PT".to_string()
@@ -163,14 +174,19 @@ impl WindowsChromeAutomation {
             .create_matcher()
             .from(window.clone())
             .filter_fn(Box::new(|element: &UIElement| {
-                Ok(is_chrome_extension_id(&element.get_name()?))
+                Ok(extract_chrome_extension_id(&element.get_name()?).is_some())
             }))
             .depth(30)
             .timeout(0)
             .find_all()
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|element| element.get_name().ok())
+            .filter_map(|element| {
+                element
+                    .get_name()
+                    .ok()
+                    .and_then(|name| extract_chrome_extension_id(&name))
+            })
             .collect()
     }
 
@@ -179,23 +195,40 @@ impl WindowsChromeAutomation {
         window: &UIElement,
         chrome_extension_id: &str,
     ) -> Result<UIElement, String> {
+        let expected_id = chrome_extension_id.to_string();
         let id_node = automation
             .create_matcher()
             .from(window.clone())
-            .match_name(chrome_extension_id)
+            .filter_fn(Box::new(move |element: &UIElement| {
+                Ok(element
+                    .get_name()
+                    .ok()
+                    .and_then(|name| extract_chrome_extension_id(&name))
+                    .as_deref()
+                    == Some(expected_id.as_str()))
+            }))
             .depth(30)
             .timeout(6_000)
             .find_first()
             .map_err(|_| {
-                format!("Chrome extension {chrome_extension_id} was not found on the Extensions page")
+                format!(
+                    "Chrome extension {chrome_extension_id} was not found on the Extensions page"
+                )
             })?;
-        let walker = automation
-            .get_control_view_walker()
-            .map_err(|error| format!("Could not navigate the Chrome accessibility tree: {error}"))?;
+        let walker = automation.get_control_view_walker().map_err(|error| {
+            format!("Could not navigate the Chrome accessibility tree: {error}")
+        })?;
         let mut current = id_node;
         for _ in 0..10 {
-            if find_named(automation, &current, RELOAD_NAMES, Some(ControlType::Button), 8, 0)
-                .is_ok()
+            if find_named(
+                automation,
+                &current,
+                RELOAD_NAMES,
+                Some(ControlType::Button),
+                8,
+                0,
+            )
+            .is_ok()
                 || find_named(
                     automation,
                     &current,
@@ -212,7 +245,9 @@ impl WindowsChromeAutomation {
                 .get_parent(&current)
                 .map_err(|_| format!("Could not locate the card for {chrome_extension_id}"))?;
         }
-        Err(format!("Could not locate the card for {chrome_extension_id}"))
+        Err(format!(
+            "Could not locate the card for {chrome_extension_id}"
+        ))
     }
 }
 
@@ -372,7 +407,9 @@ fn find_named(
 }
 
 fn name_matches(value: &str, names: &[&str]) -> bool {
-    names.iter().any(|candidate| value.eq_ignore_ascii_case(candidate))
+    names
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
 }
 
 fn invoke(element: &UIElement, label: &str) -> Result<(), String> {
@@ -382,6 +419,25 @@ fn invoke(element: &UIElement, label: &str) -> Result<(), String> {
         .map_err(|error| format!("{label} could not be invoked through UI Automation: {error}"))
 }
 
-fn is_chrome_extension_id(value: &str) -> bool {
-    value.len() == 32 && value.chars().all(|character| ('a'..='p').contains(&character))
+fn extract_chrome_extension_id(value: &str) -> Option<String> {
+    value
+        .split(|character| !('a'..='p').contains(&character))
+        .find(|candidate| candidate.len() == 32)
+        .map(str::to_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_chrome_extension_id;
+
+    #[test]
+    fn extracts_plain_and_prefixed_chrome_ids() {
+        let id = "abcdefghijklmnopabcdefghijklmnop";
+        assert_eq!(extract_chrome_extension_id(id).as_deref(), Some(id));
+        assert_eq!(
+            extract_chrome_extension_id(&format!("ID: {id}")).as_deref(),
+            Some(id)
+        );
+        assert_eq!(extract_chrome_extension_id("not an extension id"), None);
+    }
 }

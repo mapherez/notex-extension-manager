@@ -12,8 +12,8 @@ use sha2::Sha256;
 use url::Url;
 
 use crate::model::{
-    ChromeManifest, ChromeState, ExtensionStatus, ExtensionView, ManagedExtension,
-    ManagerSnapshot, RemoteFile, RepositoryConfig, RepositoryState,
+    ChromeManifest, ChromeState, ExtensionStatus, ExtensionView, ManagedExtension, ManagerSnapshot,
+    RemoteFile, RepositoryConfig, RepositoryState,
 };
 use crate::storage::StoragePaths;
 
@@ -130,14 +130,16 @@ impl RepositoryClient {
                 .sync_extension(paths, state, chrome, &commit.sha, &id, files)
                 .await
             {
-                let entry = state.extensions.entry(id.clone()).or_insert_with(|| {
-                    ManagedExtension {
-                        id: id.clone(),
-                        name: id.clone(),
-                        available: true,
-                        ..ManagedExtension::default()
-                    }
-                });
+                let entry =
+                    state
+                        .extensions
+                        .entry(id.clone())
+                        .or_insert_with(|| ManagedExtension {
+                            id: id.clone(),
+                            name: id.clone(),
+                            available: true,
+                            ..ManagedExtension::default()
+                        });
                 entry.available = true;
                 entry.problem = Some(error);
             }
@@ -164,7 +166,10 @@ impl RepositoryClient {
             .await
             .map_err(|error| format!("Could not read the GitHub tree: {error}"))?;
         if !response.status().is_success() {
-            return Err(format!("GitHub tree request failed with {}", response.status()));
+            return Err(format!(
+                "GitHub tree request failed with {}",
+                response.status()
+            ));
         }
         let tree: GitHubTree = response
             .json()
@@ -190,9 +195,7 @@ impl RepositoryClient {
             .iter()
             .find(|file| file.path == "manifest.json")
             .ok_or_else(|| format!("{id} does not contain manifest.json at its root"))?;
-        let manifest_bytes = self
-            .fetch_raw_file(commit_sha, id, manifest_file)
-            .await?;
+        let manifest_bytes = self.fetch_raw_file(commit_sha, id, manifest_file).await?;
         let manifest: ChromeManifest = serde_json::from_slice(&manifest_bytes)
             .map_err(|error| format!("{id}/manifest.json is invalid: {error}"))?;
         validate_manifest(id, &manifest)?;
@@ -240,7 +243,9 @@ impl RepositoryClient {
                 );
             }
         } else if paths.extension_dir(id).exists() {
-            return Err("Local files already exist but are not managed by NoX; update blocked".into());
+            return Err(
+                "Local files already exist but are not managed by NoX; update blocked".into(),
+            );
         }
 
         let (downloaded_dir, hashes) = self
@@ -369,7 +374,8 @@ impl RepositoryClient {
         if !response.status().is_success() {
             return Err(format!(
                 "GitHub returned {} for {id}/{}",
-                response.status(), file.path
+                response.status(),
+                file.path
             ));
         }
         Ok(response
@@ -418,10 +424,9 @@ pub fn build_snapshot(
                 description: entry.description.clone(),
                 local_version: entry.active_version.clone(),
                 installed_version: installed.map(|record| record.version.clone()),
-                available_version: entry
-                    .pending_version
-                    .clone()
-                    .or_else(|| Some(entry.remote_version.clone()).filter(|value| !value.is_empty())),
+                available_version: entry.pending_version.clone().or_else(|| {
+                    Some(entry.remote_version.clone()).filter(|value| !value.is_empty())
+                }),
                 icon_path,
                 status,
                 problem: entry.problem.clone(),
@@ -503,7 +508,9 @@ fn validate_manifest(id: &str, manifest: &ChromeManifest) -> Result<(), String> 
         return Err(format!("{id} must use Manifest V3"));
     }
     if manifest.name.trim().is_empty() || manifest.name.starts_with("__MSG_") {
-        return Err(format!("{id} must use a non-localized manifest name in the MVP"));
+        return Err(format!(
+            "{id} must use a non-localized manifest name in the MVP"
+        ));
     }
     parse_version(&manifest.version)?;
     if let Some(icon) = manifest.preferred_icon() {
@@ -514,9 +521,9 @@ fn validate_manifest(id: &str, manifest: &ChromeManifest) -> Result<(), String> 
 
 fn validate_id(id: &str) -> Result<(), String> {
     if id.is_empty()
-        || !id
-            .chars()
-            .all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+        || !id.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '-' || character == '_'
+        })
     {
         return Err(format!("Invalid extension directory id: {id}"));
     }
@@ -582,9 +589,8 @@ fn refresh_local_integrity(
     for entry in state.extensions.values_mut() {
         let changed = local_files_changed(paths, entry)?;
         if changed {
-            entry.problem = Some(
-                "Local files have changed since the last NoX download; update blocked".into(),
-            );
+            entry.problem =
+                Some("Local files have changed since the last NoX download; update blocked".into());
         } else if entry
             .problem
             .as_deref()
@@ -616,7 +622,10 @@ fn hash_directory_inner(
             .file_type()
             .map_err(|error| format!("Could not inspect {}: {error}", path.display()))?;
         if kind.is_symlink() {
-            return Err(format!("Symbolic links are not allowed: {}", path.display()));
+            return Err(format!(
+                "Symbolic links are not allowed: {}",
+                path.display()
+            ));
         }
         if kind.is_dir() {
             hash_directory_inner(root, &path, hashes)?;
@@ -653,7 +662,10 @@ pub fn replace_directory(source: &Path, destination: &Path, backups: &Path) -> R
         if backup.exists() {
             let _ = fs::rename(&backup, destination);
         }
-        return Err(format!("Could not promote {}: {error}", destination.display()));
+        return Err(format!(
+            "Could not promote {}: {error}",
+            destination.display()
+        ));
     }
     if backup.exists() {
         fs::remove_dir_all(&backup)
@@ -666,9 +678,22 @@ pub fn replace_directory(source: &Path, destination: &Path, backups: &Path) -> R
 mod tests {
     use super::*;
 
+    fn tree_file(path: &str, oid: &str) -> GitHubTreeItem {
+        GitHubTreeItem {
+            path: path.into(),
+            mode: "100644".into(),
+            kind: "blob".into(),
+            sha: oid.into(),
+            size: 10,
+        }
+    }
+
     #[test]
     fn chrome_versions_compare_numerically() {
-        assert_eq!(compare_versions("1.10", "1.9.9").unwrap(), Ordering::Greater);
+        assert_eq!(
+            compare_versions("1.10", "1.9.9").unwrap(),
+            Ordering::Greater
+        );
         assert_eq!(compare_versions("2", "2.0.0.0").unwrap(), Ordering::Equal);
         assert!(compare_versions("1.01", "1.1").is_err());
     }
@@ -688,5 +713,71 @@ mod tests {
         assert!(safe_relative_path("../manifest.json").is_err());
         assert!(validate_id("Bad Id").is_err());
         assert!(validate_id("safe-extension-1").is_ok());
+        assert!(validate_id("InstaReelControls").is_ok());
+    }
+
+    #[test]
+    fn discovery_uses_only_immediate_extension_manifests() {
+        let tree = vec![
+            tree_file("extensions/First/manifest.json", "one"),
+            tree_file("extensions/First/content.js", "two"),
+            tree_file("extensions/group/Nested/manifest.json", "three"),
+            tree_file("extensions/README.md", "four"),
+        ];
+        let discovered = discover_extensions("extensions", tree).unwrap();
+        assert_eq!(discovered.keys().cloned().collect::<Vec<_>>(), ["First"]);
+        assert_eq!(discovered["First"].len(), 2);
+    }
+
+    #[test]
+    fn manifest_validation_requires_v3_and_a_numeric_version() {
+        let valid = ChromeManifest {
+            manifest_version: 3,
+            name: "Test".into(),
+            description: String::new(),
+            version: "1.2.3".into(),
+            icons: BTreeMap::new(),
+        };
+        assert!(validate_manifest("Test", &valid).is_ok());
+        assert!(validate_manifest(
+            "Test",
+            &ChromeManifest {
+                manifest_version: 2,
+                ..valid.clone()
+            }
+        )
+        .is_err());
+        assert!(validate_manifest(
+            "Test",
+            &ChromeManifest {
+                version: "one".into(),
+                ..valid
+            }
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn downloaded_bytes_are_checked_against_the_git_blob_id() {
+        assert!(verify_git_oid(b"hello\n", "ce013625030ba8dba906f756967f9e9ca394464a").is_ok());
+        assert!(verify_git_oid(b"changed", "ce013625030ba8dba906f756967f9e9ca394464a").is_err());
+    }
+
+    #[test]
+    fn directory_promotion_replaces_the_active_copy() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("source");
+        let destination = temp.path().join("destination");
+        let backups = temp.path().join("backups");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(&destination).unwrap();
+        fs::write(source.join("version.txt"), "new").unwrap();
+        fs::write(destination.join("version.txt"), "old").unwrap();
+        replace_directory(&source, &destination, &backups).unwrap();
+        assert_eq!(
+            fs::read_to_string(destination.join("version.txt")).unwrap(),
+            "new"
+        );
+        assert!(!source.exists());
     }
 }

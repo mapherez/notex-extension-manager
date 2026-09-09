@@ -13,7 +13,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:no-bundle": "tauri build --no-bundle",
+    "release:metadata": "node .github/scripts/create-latest-json.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

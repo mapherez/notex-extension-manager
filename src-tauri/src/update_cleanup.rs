@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use tauri::{AppHandle, Manager};
@@ -8,7 +8,9 @@ pub fn nox_prepare_update_relaunch_with_local_data_reset(app: AppHandle) -> Resu
     let local_data_dir = app.path().app_local_data_dir().map_err(to_string)?;
     let roaming_data_dir = app.path().app_data_dir().map_err(to_string)?;
     if normalize_path_text(&local_data_dir) == normalize_path_text(&roaming_data_dir) {
-        return Err("Refusing to clear local WebView data because it matches persistent app data".into());
+        return Err(
+            "Refusing to clear local WebView data because it matches persistent app data".into(),
+        );
     }
     schedule_clean_relaunch(local_data_dir)
 }
@@ -25,7 +27,15 @@ fn schedule_clean_relaunch(local_data_dir: PathBuf) -> Result<(), String> {
         std::process::id(), data, data, exe
     );
     Command::new("powershell.exe")
-        .args(["-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", &script])
+        .args([
+            "-NoProfile",
+            "-WindowStyle",
+            "Hidden",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
+        ])
         .creation_flags(CREATE_NO_WINDOW)
         .spawn()
         .map_err(to_string)?;
@@ -35,13 +45,21 @@ fn schedule_clean_relaunch(local_data_dir: PathBuf) -> Result<(), String> {
 #[cfg(not(target_os = "windows"))]
 fn schedule_clean_relaunch(local_data_dir: PathBuf) -> Result<(), String> {
     let current_exe = std::env::current_exe().map_err(to_string)?;
-    if local_data_dir.exists() { std::fs::remove_dir_all(&local_data_dir).map_err(to_string)?; }
+    if local_data_dir.exists() {
+        std::fs::remove_dir_all(&local_data_dir).map_err(to_string)?;
+    }
     std::fs::create_dir_all(&local_data_dir).map_err(to_string)?;
     Command::new(current_exe).spawn().map_err(to_string)?;
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
-fn powershell_quote(value: &str) -> String { format!("'{}'", value.replace('\'', "''")) }
-fn normalize_path_text(path: &PathBuf) -> String { path.to_string_lossy().replace('\\', "/").to_lowercase() }
-fn to_string(error: impl ToString) -> String { error.to_string() }
+fn powershell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+fn normalize_path_text(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/").to_lowercase()
+}
+fn to_string(error: impl ToString) -> String {
+    error.to_string()
+}
