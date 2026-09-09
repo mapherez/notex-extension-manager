@@ -1,0 +1,6 @@
+{
+  "repository": "mapherez/notex-extension-manager",
+  "branch": "main",
+  "extensionsPath": "extensions",
+  "repositoryUrl": "https://github.com/mapherez/notex-extension-manager"
+}
