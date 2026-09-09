@@ -1,0 +1,34 @@
+.vib-local-button {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2147483647;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(32, 33, 36, 0.88);
+  color: #fff;
+  font: 500 12px/1.2 Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 120ms ease, transform 120ms ease, background 120ms ease;
+  transform: translateY(2px);
+}
+
+:hover > .vib-local-button,
+.vib-local-button:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vib-local-button:hover,
+.vib-local-button:focus-visible {
+  background: rgba(0, 0, 0, 0.95);
+  outline: none;
+}

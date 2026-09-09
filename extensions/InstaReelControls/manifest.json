@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "InstaReelControls",
+  "version": "1.0.0",
+  "icons": {
+	"16": "icon16.png",
+	"32": "icon32.png",
+	"192": "icon192.png",
+	"512": "icon512.png"
+  },
+  "description": "Adds private, local video controls to Instagram Reels.",
+  "content_scripts": [
+    {
+	"matches": [
+	"https://www.instagram.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

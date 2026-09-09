@@ -1,0 +1,274 @@
+/* ------------------------------------------------------------
+   Normal YouTube Shorts mode
+   ------------------------------------------------------------ */
+
+body.nox-shorts-enabled ytd-shorts-player-controls {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.nox-shorts-enabled #shorts-container .ytp-chrome-top,
+body.nox-shorts-enabled #shorts-container .ytp-chrome-bottom,
+body.nox-shorts-enabled #shorts-container .ytp-gradient-top,
+body.nox-shorts-enabled #shorts-container .ytp-gradient-bottom {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/*
+  Reserve space above our custom timeline so YouTube's channel portrait,
+  Subscribe button, title/metadata, etc. don't sit on top of the controls.
+  This mirrors the approach used by the extension you were already using.
+*/
+body.nox-shorts-enabled
+  ytd-reel-player-overlay-renderer .metadata-container,
+body.nox-shorts-enabled
+  ytd-reel-player-overlay-renderer .ytReelPlayerOverlayViewModelMetadataContainer,
+body.nox-shorts-enabled
+  yt-reel-player-overlay-view-model .ytReelPlayerOverlayViewModelMetadataContainer,
+body.nox-shorts-enabled
+  ytd-in-feed-ad-layout-renderer .ytwReelsPlayerOverlayLayoutViewModelHostMetadataContainer {
+  margin-bottom: 72px !important;
+  transition: margin-bottom 0.16s ease-in-out;
+}
+
+/* ------------------------------------------------------------
+   Custom control bar
+   ------------------------------------------------------------ */
+
+#nox-shorts-controls {
+  box-sizing: border-box;
+  height: 64px;
+  padding: 0 12px 7px;
+  color: #fff;
+  font-family: Roboto, Arial, sans-serif;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 2147483647;
+  user-select: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#nox-shorts-controls.nox-shorts-normal {
+  position: fixed;
+  display: block;
+  border-radius: 0 0 12px 12px;
+}
+
+.nox-shorts-controls-row {
+  height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nox-shorts-spacer {
+  flex: 1 1 auto;
+}
+
+.nox-shorts-button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  padding: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nox-shorts-button:hover,
+.nox-shorts-button:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+
+.nox-shorts-button svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.nox-shorts-seek,
+.nox-shorts-volume {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.35);
+  accent-color: #f00;
+}
+
+.nox-shorts-seek {
+  display: block;
+  width: 100%;
+  margin: 0;
+  transform: translateY(1px);
+}
+
+.nox-shorts-volume {
+  width: 88px;
+}
+
+.nox-shorts-seek::-webkit-slider-thumb,
+.nox-shorts-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.nox-shorts-seek::-webkit-slider-thumb {
+  background: #f00;
+}
+
+.nox-shorts-time {
+  min-width: 88px;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------
+   Custom fullscreen
+   ------------------------------------------------------------ */
+
+#nox-shorts-fullscreen-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  background: #000;
+  overflow: hidden;
+  z-index: 2147483647;
+}
+
+#nox-shorts-fullscreen-shell.nox-shorts-preparing,
+#nox-shorts-fullscreen-shell.nox-shorts-active,
+#nox-shorts-fullscreen-shell:fullscreen {
+  display: block !important;
+}
+
+.nox-shorts-fullscreen-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.nox-shorts-fullscreen-video {
+  position: absolute !important;
+  inset: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+
+  object-fit: contain !important;
+  object-position: center center !important;
+
+  background: #000 !important;
+  z-index: 1 !important;
+}
+
+/*
+  Keep our controls permanently visible in fullscreen.
+  Explicit display/visibility/pointer-events rules are intentional here:
+  Chrome/YouTube fullscreen CSS can otherwise interfere with them.
+*/
+#nox-shorts-fullscreen-shell > #nox-shorts-controls,
+#nox-shorts-fullscreen-shell:fullscreen > #nox-shorts-controls,
+#nox-shorts-fullscreen-shell:-webkit-full-screen > #nox-shorts-controls {
+  display: block !important;
+  position: fixed !important;
+
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+
+  width: 100vw !important;
+  height: 65px !important;
+
+  margin: 0 !important;
+  border-radius: 0 !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+
+  z-index: 2147483647 !important;
+  background: rgba(0, 0, 0, 0.88) !important;
+}
+
+#nox-shorts-fullscreen-shell:fullscreen,
+#nox-shorts-fullscreen-shell:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #000 !important;
+}
+
+#nox-shorts-fullscreen-shell:fullscreen .nox-shorts-fullscreen-stage,
+#nox-shorts-fullscreen-shell:-webkit-full-screen .nox-shorts-fullscreen-stage {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* ------------------------------------------------------------
+   Small-width cleanup
+   ------------------------------------------------------------ */
+
+@media (max-width: 560px) {
+  .nox-shorts-volume {
+    width: 62px;
+  }
+
+  .nox-shorts-time {
+    min-width: 72px;
+    font-size: 12px;
+  }
+}
+
+/* Exact wrapper spacing used for the action-rail menu trigger. */
+.nox-shorts-menu-button-wrapper {
+  padding-bottom: 14px !important;
+}
+
+.nox-shorts-menu-button {
+  cursor: pointer;
+}
+
+
+/* Fullscreen click-catcher: above video, below custom controls. */
+.nox-shorts-fullscreen-interaction {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}

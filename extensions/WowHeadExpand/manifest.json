@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "WowHeadExpand",
+  "version": "1.1",
+  "description": "Automatically expands the site on Wowhead.",
+  "host_permissions": [
+    "http://www.wowhead.com/*",
+    "https://www.wowhead.com/*"
+  ],
+  "icons": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "192": "icon192.png",      
+      "512": "icon512.png"
+   },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.wowhead.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}
