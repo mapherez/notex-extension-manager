@@ -88,7 +88,7 @@ Then:
    `TAURI_SIGNING_PRIVATE_KEY`.
 3. Store its password, if used, in
    `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-4. Run the **Release Windows app** workflow from GitHub Actions.
+4. Run the **Release Tauri app** workflow from GitHub Actions.
 
 The private key directory is ignored by Git. The workflow builds signed Tauri
 updater artifacts, creates `latest.json`, and uploads the installer, signatures
