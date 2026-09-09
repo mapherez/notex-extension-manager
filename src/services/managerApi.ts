@@ -2,7 +2,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type { ExtensionAction, ExtensionActionResult, ManagerSnapshot } from '../types';
 
-const repositoryUrl = 'https://github.com/mapherez/notex-extension-manager';
+const repositoryUrl = "https://github.com/mapherez/nox-extension-manager";
 
 const browserPreview: ManagerSnapshot = {
   repositoryUrl,

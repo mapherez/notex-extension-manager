@@ -10,7 +10,7 @@ adapters.
 
 - Discovers immediate folders under `extensions/` that contain a Manifest V3
   `manifest.json`; there is no separate catalogue.
-- Reads only `mapherez/notex-extension-manager`, currently from `master`, and
+- Reads only `mapherez/nox-extension-manager`, currently from `master`, and
   pins downloads to the exact commit SHA returned by GitHub.
 - Uses ETag/commit caching, verifies Git object hashes and records SHA-256
   snapshots of local files.
@@ -71,7 +71,7 @@ demo card data and does not write to Documents.
 The updater endpoint is fixed to:
 
 ```text
-https://github.com/mapherez/notex-extension-manager/releases/latest/download/latest.json
+https://github.com/mapherez/nox-extension-manager/releases/latest/download/latest.json
 ```
 
 Before the first release, generate a dedicated Tauri updater key pair:

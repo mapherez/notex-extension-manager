@@ -224,14 +224,51 @@ function ErrorDialog({ message, repositoryUrl, repairId, onClose, onRetry, onRep
   message: string; repositoryUrl?: string; repairId: string | null; onClose: () => void;
   onRetry: () => void; onRepair: (id: string) => void;
 }) {
-  return <div className="dialog-backdrop"><section className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="error-title">
-    <div className="dialog-icon warning"><AlertTriangle size={23} /></div><h2 id="error-title">NoX could not complete the action</h2><p>{message}</p>
-    <div className="dialog-actions dialog-actions-spread"><button className="button button-ghost"
-      onClick={() => void openUrl(repositoryUrl ?? 'https://github.com/mapherez/notex-extension-manager')}><GitFork size={17} /> Open GitHub</button>
-      <div><button className="button button-secondary" onClick={onClose}>Close</button>
-        {repairId ? <button className="button button-secondary" onClick={() => onRepair(repairId)}><RotateCcw size={17} /> Repair</button> : null}
-        <button className="button button-primary" onClick={onRetry}>Retry</button></div>
-    </div></section></div>;
+  return (
+    <div className="dialog-backdrop">
+      <section
+        className="dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="error-title"
+      >
+        <div className="dialog-icon warning">
+          <AlertTriangle size={23} />
+        </div>
+        <h2 id="error-title">NoX could not complete the action</h2>
+        <p>{message}</p>
+        <div className="dialog-actions dialog-actions-spread">
+          <button
+            className="button button-ghost"
+            onClick={() =>
+              void openUrl(
+                repositoryUrl ??
+                  "https://github.com/mapherez/nox-extension-manager",
+              )
+            }
+          >
+            <GitFork size={17} /> Open GitHub
+          </button>
+          <div>
+            <button className="button button-secondary" onClick={onClose}>
+              Close
+            </button>
+            {repairId ? (
+              <button
+                className="button button-secondary"
+                onClick={() => onRepair(repairId)}
+              >
+                <RotateCcw size={17} /> Repair
+              </button>
+            ) : null}
+            <button className="button button-primary" onClick={onRetry}>
+              Retry
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function LoadingCards() { return <>{[0, 1, 2].map((item) => <div className="extension-card skeleton" key={item} />)}</>; }
