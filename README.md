@@ -18,8 +18,8 @@ adapters.
   extensions remain staged until the user clicks **Update**.
 - Blocks changed content unless `manifest.json` contains a strictly newer
   version, and blocks updates when active local files were modified.
-- Automates Install, Reload/Update, Remove, Verify and Repair with Windows UI
-  Automation selectors in English and pt-PT. No coordinate clicks are used.
+- Automates Install, Update, Remove and Repair through Windows UI Automation.
+  No coordinate clicks are used.
 - Includes the app updater UI, signed updater artifacts and persistent footer
   status after dismissing the update banner.
 
@@ -74,30 +74,22 @@ The updater endpoint is fixed to:
 https://github.com/mapherez/nox-extension-manager/releases/latest/download/latest.json
 ```
 
-Before the first release, generate a dedicated Tauri updater key pair:
+The updater public key is already configured in `src-tauri/tauri.conf.json`.
+To publish signed updates:
 
-```powershell
-npx tauri signer generate -w .keys/nox-updater.key
-```
-
-Then:
-
-1. Replace `REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY` in
-   `src-tauri/tauri.conf.json` with the generated public key.
-2. Store the private key contents in the repository secret
+1. Store the matching private key contents in the repository secret
    `TAURI_SIGNING_PRIVATE_KEY`.
-3. Store its password, if used, in
+2. Store its password, if used, in
    `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-4. Run the **Release Tauri app** workflow from GitHub Actions.
+3. Run the **Release Tauri app** workflow from GitHub Actions.
 
-The private key directory is ignored by Git. The workflow builds signed Tauri
-updater artifacts, creates `latest.json`, and uploads the installer, signatures
-and update manifest to the GitHub Release. Authenticode signing is intentionally
-outside the pilot MVP.
+The workflow builds signed Tauri updater artifacts, creates `latest.json`, and
+uploads the installer, signatures and update manifest to the GitHub Release.
+Authenticode signing is intentionally outside the pilot MVP.
 
 ## Verification scope
 
-Automated tests cover repository path/version/hash rules, atomic state storage,
-Chrome-ID parsing, card states/actions, synchronization copy and persistent app
-update status. Final UI Automation verification still requires a real unlocked
-Windows 11 desktop with Chrome Stable in English and pt-PT.
+Automated tests cover repository integrity, atomic state storage, Chrome
+automation targeting, updater recovery and the main interface states. Final UI
+Automation verification still requires a real unlocked Windows 11 desktop with
+Chrome Stable.
