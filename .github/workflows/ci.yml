@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "extensions/**"
   pull_request:
     branches: [master]
+    paths-ignore:
+      - "extensions/**"
 
 permissions:
   contents: read
