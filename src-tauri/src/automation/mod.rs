@@ -5,7 +5,6 @@ pub trait BrowserAutomationBackend: Send + Sync {
     fn install(&self, extension_path: &Path, expected_version: &str) -> Result<String, String>;
     fn reload(&self, chrome_extension_id: &str, expected_version: &str) -> Result<(), String>;
     fn remove(&self, chrome_extension_id: &str) -> Result<(), String>;
-    fn verify(&self, chrome_extension_id: &str, expected_version: &str) -> Result<(), String>;
 }
 
 #[cfg(target_os = "windows")]
@@ -33,10 +32,6 @@ impl BrowserAutomationBackend for UnsupportedAutomation {
     }
 
     fn remove(&self, _: &str) -> Result<(), String> {
-        self.preflight()
-    }
-
-    fn verify(&self, _: &str, _: &str) -> Result<(), String> {
         self.preflight()
     }
 }

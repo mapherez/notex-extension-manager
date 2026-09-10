@@ -81,9 +81,7 @@ impl ManagerService {
         let automation = Arc::clone(&self.automation);
         let action_version = version.clone();
         let chrome_id = tauri::async_runtime::spawn_blocking(move || {
-            let chrome_id = automation.install(&path, &action_version)?;
-            automation.verify(&chrome_id, &action_version)?;
-            Ok::<_, String>(chrome_id)
+            automation.install(&path, &action_version)
         })
         .await
         .map_err(|error| format!("Chrome automation task failed: {error}"))??;
@@ -145,8 +143,7 @@ impl ManagerService {
         let chrome_id = installed.chrome_extension_id.clone();
         let action_version = pending_version.clone();
         let action = tauri::async_runtime::spawn_blocking(move || {
-            automation.reload(&chrome_id, &action_version)?;
-            automation.verify(&chrome_id, &action_version)
+            automation.reload(&chrome_id, &action_version)
         })
         .await
         .map_err(|error| format!("Chrome automation task failed: {error}"))?;
@@ -237,16 +234,11 @@ impl ManagerService {
                 if automation
                     .reload(&record.chrome_extension_id, &action_version)
                     .is_ok()
-                    && automation
-                        .verify(&record.chrome_extension_id, &action_version)
-                        .is_ok()
                 {
                     return Ok(record.chrome_extension_id);
                 }
             }
-            let chrome_id = automation.install(&path, &action_version)?;
-            automation.verify(&chrome_id, &action_version)?;
-            Ok::<_, String>(chrome_id)
+            automation.install(&path, &action_version)
         })
         .await
         .map_err(|error| format!("Chrome automation task failed: {error}"))??;

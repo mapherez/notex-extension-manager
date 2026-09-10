@@ -59,7 +59,11 @@ export const useAppUpdaterStore = create<AppUpdaterStore>((set, get) => ({
     try {
       await installAppUpdate(updateInfo.update, (progress) => set({ progress }));
     } catch (error) {
-      set({ status: 'available', error: error instanceof Error ? error.message : String(error) });
+      set({
+        status: 'available',
+        progress: null,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   },
 }));

@@ -1,6 +1,6 @@
 [package]
 name = "nox-extension-manager"
-version = "0.1.0"
+version = "1.0.0"
 description = "Cross-platform manager for local Google Chrome extensions"
 authors = ["mapherez"]
 edition = "2021"

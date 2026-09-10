@@ -42,6 +42,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .titlebar {
+  grid-row: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -78,6 +79,7 @@ button:focus-visible, input:focus-visible {
 .window-controls .close-control:hover { background: #c42b1c; }
 
 .workspace {
+  grid-row: 3;
   min-height: 0;
   overflow: auto;
   scrollbar-color: #314762 transparent;
@@ -236,6 +238,7 @@ h1 { margin: 0; font-size: clamp(30px, 3.2vw, 40px); line-height: 1; letter-spac
 .skeleton { min-height: 130px; background: linear-gradient(100deg, #101d2d 30%, #172941 48%, #101d2d 66%); background-size: 240% 100%; animation: shimmer 1.4s infinite; }
 
 .app-footer {
+  grid-row: 4;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -264,6 +267,7 @@ h1 { margin: 0; font-size: clamp(30px, 3.2vw, 40px); line-height: 1; letter-spac
 .footer-version { color: #617590; font-size: 11px; }
 
 .update-banner {
+  grid-row: 2;
   z-index: 4;
   display: grid;
   grid-template-columns: auto 1fr auto;

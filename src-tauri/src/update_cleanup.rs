@@ -20,12 +20,7 @@ fn schedule_clean_relaunch(local_data_dir: PathBuf) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
     let current_exe = std::env::current_exe().map_err(to_string)?;
-    let data = powershell_quote(&local_data_dir.to_string_lossy());
-    let exe = powershell_quote(&current_exe.to_string_lossy());
-    let script = format!(
-        "$ErrorActionPreference='SilentlyContinue'; Wait-Process -Id {} -Timeout 45; Start-Sleep -Milliseconds 350; Remove-Item -LiteralPath {} -Recurse -Force; New-Item -ItemType Directory -Force -Path {} | Out-Null; Start-Process -FilePath {} -WindowStyle Hidden;",
-        std::process::id(), data, data, exe
-    );
+    let script = windows_cleanup_script(std::process::id(), &local_data_dir, &current_exe);
     Command::new("powershell.exe")
         .args([
             "-NoProfile",
@@ -40,6 +35,15 @@ fn schedule_clean_relaunch(local_data_dir: PathBuf) -> Result<(), String> {
         .spawn()
         .map_err(to_string)?;
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn windows_cleanup_script(process_id: u32, local_data_dir: &Path, executable: &Path) -> String {
+    let data = powershell_quote(&local_data_dir.to_string_lossy());
+    let exe = powershell_quote(&executable.to_string_lossy());
+    format!(
+        "$ErrorActionPreference='SilentlyContinue'; Wait-Process -Id {process_id} -Timeout 45; Start-Sleep -Milliseconds 350; for($attempt=0; $attempt -lt 20; $attempt++){{ Remove-Item -LiteralPath {data} -Recurse -Force; if(-not (Test-Path -LiteralPath {data})){{ break }}; Start-Sleep -Milliseconds 250 }}; New-Item -ItemType Directory -Force -Path {data} | Out-Null; Start-Process -FilePath {exe} -WindowStyle Hidden;"
+    )
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -62,4 +66,31 @@ fn normalize_path_text(path: &Path) -> String {
 }
 fn to_string(error: impl ToString) -> String {
     error.to_string()
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use std::path::Path;
+
+    use super::{powershell_quote, windows_cleanup_script};
+
+    #[test]
+    fn powershell_paths_escape_single_quotes() {
+        assert_eq!(powershell_quote("C:\\NoX's data"), "'C:\\NoX''s data'");
+    }
+
+    #[test]
+    fn cleanup_retries_before_relaunching() {
+        let script = windows_cleanup_script(
+            42,
+            Path::new(r"C:\Users\Test\AppData\Local\NoX"),
+            Path::new(r"C:\Program Files\NoX\nox.exe"),
+        );
+
+        assert!(script.contains("Wait-Process -Id 42 -Timeout 45"));
+        assert!(script.contains("$attempt -lt 20"));
+        assert!(script.contains("Test-Path -LiteralPath"));
+        assert!(script.contains("Start-Sleep -Milliseconds 250"));
+        assert!(script.find("for($attempt").unwrap() < script.find("Start-Process").unwrap());
+    }
 }
