@@ -13,13 +13,19 @@ mod windows;
 #[cfg(target_os = "windows")]
 pub use windows::WindowsChromeAutomation;
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "macos")]
+mod macos;
+
+#[cfg(target_os = "macos")]
+pub use macos::MacOsChromeAutomation;
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub struct UnsupportedAutomation;
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 impl BrowserAutomationBackend for UnsupportedAutomation {
     fn preflight(&self) -> Result<(), String> {
-        Err("Chrome automation is currently available only on Windows 11 x64".into())
+        Err("Chrome automation is available only on Windows and macOS".into())
     }
 
     fn install(&self, _: &Path, _: &str) -> Result<String, String> {

@@ -55,8 +55,8 @@ function App() {
   const act = (action: ExtensionAction, id: string) => { void runAction(action, id); };
 
   return (
-    <div className="app-shell">
-      <Titlebar />
+    <div className={`app-shell platform-${__NOX_PLATFORM__}`}>
+      {__NOX_PLATFORM__ === 'macos' ? null : <Titlebar />}
       <AppUpdateBanner />
       <main className="workspace">
         <header className="page-header">

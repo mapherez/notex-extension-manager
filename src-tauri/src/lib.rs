@@ -63,7 +63,10 @@ pub fn run() {
     #[cfg(target_os = "windows")]
     let automation: Arc<dyn automation::BrowserAutomationBackend> =
         Arc::new(automation::WindowsChromeAutomation::new());
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    let automation: Arc<dyn automation::BrowserAutomationBackend> =
+        Arc::new(automation::MacOsChromeAutomation::new());
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     let automation: Arc<dyn automation::BrowserAutomationBackend> =
         Arc::new(automation::UnsupportedAutomation);
 

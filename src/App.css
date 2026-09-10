@@ -41,6 +41,15 @@ button:focus-visible, input:focus-visible {
   border: 1px solid rgba(112, 139, 174, .4);
 }
 
+.app-shell.platform-macos {
+  grid-template-rows: auto minmax(0, 1fr) 49px;
+  border: 0;
+}
+
+.platform-macos .update-banner { grid-row: 1; }
+.platform-macos .workspace { grid-row: 2; }
+.platform-macos .app-footer { grid-row: 3; }
+
 .titlebar {
   grid-row: 1;
   display: flex;

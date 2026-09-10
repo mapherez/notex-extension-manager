@@ -3,10 +3,18 @@ import react from "@vitejs/plugin-react";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
+const platform = process.platform === "darwin"
+  ? "macos"
+  : process.platform === "win32"
+    ? "windows"
+    : "other";
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react()],
+  define: {
+    __NOX_PLATFORM__: JSON.stringify(platform),
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
