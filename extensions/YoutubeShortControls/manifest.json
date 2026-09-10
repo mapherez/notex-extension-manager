@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Shorts Controls",
-  "version": "0.4.6",
+  "version": "1.0.0",
   "description": "Custom controls and clean fullscreen for YouTube Shorts.",
   "content_scripts": [
     {
